@@ -16,6 +16,11 @@ limitations under the License.
 package evmscc
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
+	"fmt"
+	"io"
 	"testing"
 
 	"github.com/hyperledger/burrow/account"
@@ -26,6 +31,7 @@ import (
 	"github.com/hyperledger/fabric/core/aclmgmt/resources"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"github.com/hyperledger/fabric/core/common/sysccprovider"
+	"github.com/hyperledger/fabric/core/container/util"
 	"github.com/hyperledger/fabric/protos/peer"
 	"github.com/stretchr/testify/assert"
 )
@@ -229,4 +235,39 @@ func TestSetStorage(t *testing.T) {
 	val, err := mockStub.GetState(compositeKey)
 	assert.NoError(t, err)
 	assert.EqualValues(t, convVal.Bytes(), val)
+}
+
+func TestDecodeBytecode(t *testing.T) {
+
+	buf := bytes.NewBuffer(nil)
+	gw := gzip.NewWriter(buf)
+	tw := tar.NewWriter(gw)
+
+	defer tw.Close()
+	defer gw.Close()
+
+	data := []byte("do i need to have more stuff in here?")
+	err := util.WriteBytesToPackage("data", data, tw)
+
+	assert.NoError(t, err)
+
+	fmt.Println("BUFFER BYTES: ", buf.Bytes())
+
+	br := bytes.NewReader(buf.Bytes())
+	gr, err := gzip.NewReader(br)
+	assert.NoError(t, err)
+	tr := tar.NewReader(gr)
+
+	hdr, err := tr.Next()
+	assert.NoError(t, err)
+
+	assert.NotNil(t, hdr)
+
+	newBuffer := bytes.NewBuffer(nil)
+	io.Copy(newBuffer, tr)
+
+	decodedBytecode := DecodeBytecode("data", buf.Bytes())
+
+	assert.Equal(t, data, decodedBytecode)
+
 }

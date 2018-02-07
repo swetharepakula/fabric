@@ -1,7 +1,13 @@
 package evmscc
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"errors"
+	"fmt"
+	"io"
+	"os"
 
 	"github.com/hyperledger/burrow/account"
 	"github.com/hyperledger/burrow/binary"
@@ -90,4 +96,32 @@ func (s *stateManager) SetStorage(address account.Address, key, value binary.Wor
 	compKey := string(address.Bytes()) + string(key.Bytes())
 
 	return s.stub.PutState(compKey, value.Bytes())
+}
+
+func DecodeBytecode(ccName string, compressedBytes []byte) []byte {
+
+	r := bytes.NewReader(compressedBytes)
+	gr, _ := gzip.NewReader(r)
+	// check for error
+	tr := tar.NewReader(gr)
+
+	defer gr.Close()
+
+	var buf *bytes.Buffer
+
+	for {
+		header, err := tr.Next()
+		fmt.Fprintf(os.Stdout, "ERRORRRR: %+v\n\n", err)
+
+		if header.Name == ccName {
+			buf = bytes.NewBuffer(nil)
+
+			io.Copy(buf, tr)
+		}
+
+	}
+
+	return buf.Bytes()
+
+	// return []byte{}
 }
