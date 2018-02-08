@@ -1,12 +1,6 @@
 package evmscc
 
 import (
-	"archive/tar"
-	"bytes"
-	"compress/gzip"
-	"fmt"
-	"io"
-
 	"github.com/hyperledger/burrow/account"
 	"github.com/hyperledger/burrow/binary"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
@@ -40,14 +34,14 @@ func (s *stateManager) GetAccount(address account.Address) (account.Account, err
 		return account.ConcreteAccount{}.Account(), nil
 	}
 
-	decodedCode, err := DecodeBytecode(convAddr, code)
-	if err != nil {
-		return account.ConcreteAccount{}.Account(), err
-	}
+	// decodedCode, err := DecodeBytecode(convAddr, code)
+	// if err != nil {
+	// 	return account.ConcreteAccount{}.Account(), err
+	// }
 
 	return account.ConcreteAccount{
 		Address: address,
-		Code:    decodedCode,
+		Code:    code,
 	}.Account(), nil
 }
 
@@ -67,9 +61,8 @@ func (s *stateManager) GetStorage(address account.Address, key binary.Word256) (
 }
 
 func (s *stateManager) UpdateAccount(updatedAccount account.Account) error {
-	return fmt.Errorf("NOT AN ALLOWED OPERATION: UpdateAccount")
 
-	// convAddr := string(updatedAccount.Address().Bytes())
+	convAddr := string(updatedAccount.Address().Bytes())
 	// code, err := s.stub.GetState(convAddr)
 	// if err != nil {
 	// 	return err
@@ -79,12 +72,11 @@ func (s *stateManager) UpdateAccount(updatedAccount account.Account) error {
 	// 	return errors.New("Account does not exist")
 	// }
 
-	// return s.stub.PutState(convAddr, updatedAccount.Code().Bytes())
+	return s.stub.PutState(convAddr, updatedAccount.Code().Bytes())
 }
 
 func (s *stateManager) RemoveAccount(address account.Address) error {
-	return fmt.Errorf("NOT AN ALLOWED OPERATION: RemoveAccount")
-	// convAddr := string(address.Bytes())
+	convAddr := string(address.Bytes())
 	// code, err := s.stub.GetState(convAddr)
 	// if err != nil {
 	// 	return err
@@ -94,7 +86,7 @@ func (s *stateManager) RemoveAccount(address account.Address) error {
 	// 	return errors.New("Account does not exist")
 	// }
 
-	// return s.stub.DelState(convAddr)
+	return s.stub.DelState(convAddr)
 }
 
 func (s *stateManager) SetStorage(address account.Address, key, value binary.Word256) error {
@@ -103,40 +95,40 @@ func (s *stateManager) SetStorage(address account.Address, key, value binary.Wor
 	return s.stub.PutState(compKey, value.Bytes())
 }
 
-func DecodeBytecode(ccName string, compressedBytes []byte) ([]byte, error) {
-	r := bytes.NewReader(compressedBytes)
-	gr, _ := gzip.NewReader(r)
-	// check for error
-	tr := tar.NewReader(gr)
+// func DecodeBytecode(ccName string, compressedBytes []byte) ([]byte, error) {
+// 	r := bytes.NewReader(compressedBytes)
+// 	gr, _ := gzip.NewReader(r)
+// 	// check for error
+// 	tr := tar.NewReader(gr)
 
-	defer gr.Close()
+// 	defer gr.Close()
 
-	var buf *bytes.Buffer
+// 	var buf *bytes.Buffer
 
-	for {
-		header, err := tr.Next()
-		if err == io.EOF {
-			break
-		}
+// 	for {
+// 		header, err := tr.Next()
+// 		if err == io.EOF {
+// 			break
+// 		}
 
-		if err != nil {
-			return []byte{}, err
-		}
+// 		if err != nil {
+// 			return []byte{}, err
+// 		}
 
-		convHeaderName := stringToAddress(header.Name)
+// 		convHeaderName := stringToAddress(header.Name)
 
-		if string(convHeaderName.Bytes()) != ccName {
-			return []byte{}, fmt.Errorf("Name does not match. File: %s, CCName: %s", header.Name, ccName)
-		}
+// 		if string(convHeaderName.Bytes()) != ccName {
+// 			return []byte{}, fmt.Errorf("Name does not match. File: %s, CCName: %s", header.Name, ccName)
+// 		}
 
-		buf = bytes.NewBuffer(nil)
+// 		buf = bytes.NewBuffer(nil)
 
-		io.Copy(buf, tr)
+// 		io.Copy(buf, tr)
 
-	}
+// 	}
 
-	return buf.Bytes(), nil
-}
+// 	return buf.Bytes(), nil
+// }
 
 func stringToAddress(addr string) account.Address {
 

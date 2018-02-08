@@ -144,36 +144,35 @@ func TestGetStorage(t *testing.T) {
 	assert.EqualValues(t, convVal, val)
 }
 
-//Not an allowed operation
-// func TestUpdateAccount(t *testing.T) {
-// 	mockStub := setupEnv()
+func TestUpdateAccount(t *testing.T) {
+	mockStub := setupEnv()
 
-// 	codePkg := []byte("chaincodecodepackage")
-// 	codePkg2 := []byte("changedcodepackage")
+	codePkg := []byte("chaincodecodepackage")
+	codePkg2 := []byte("changedcodepackage")
 
-// 	var convCCID account.Address
-// 	copy(convCCID[:], fakeChaincodeID[:])
-// 	mockStub.MockTransactionStart("transaction1")
-// 	err := mockStub.PutState(string(convCCID.Bytes()), codePkg)
-// 	mockStub.MockTransactionEnd("transaction1")
-// 	assert.NoError(t, err)
+	var convCCID account.Address
+	copy(convCCID[:], fakeChaincodeID[:])
+	mockStub.MockTransactionStart("transaction1")
+	err := mockStub.PutState(string(convCCID.Bytes()), codePkg)
+	mockStub.MockTransactionEnd("transaction1")
+	assert.NoError(t, err)
 
-// 	sm := NewStateManager(mockStub)
+	sm := NewStateManager(mockStub)
 
-// 	updatedAcct := account.ConcreteAccount{
-// 		Address: convCCID,
-// 		Code:    codePkg2,
-// 	}.Account()
+	updatedAcct := account.ConcreteAccount{
+		Address: convCCID,
+		Code:    codePkg2,
+	}.Account()
 
-// 	mockStub.MockTransactionStart("transaction2")
-// 	err = sm.UpdateAccount(updatedAcct)
-// 	mockStub.MockTransactionEnd("transaction2")
-// 	assert.NoError(t, err)
+	mockStub.MockTransactionStart("transaction2")
+	err = sm.UpdateAccount(updatedAcct)
+	mockStub.MockTransactionEnd("transaction2")
+	assert.NoError(t, err)
 
-// 	updatedCode, err := mockStub.GetState(string(convCCID.Bytes()))
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, updatedCode, codePkg2)
-// }
+	updatedCode, err := mockStub.GetState(string(convCCID.Bytes()))
+	assert.NoError(t, err)
+	assert.Equal(t, updatedCode, codePkg2)
+}
 
 // func TestUpdateAccountNoPreviousAccount(t *testing.T) {
 // 	mockStub := setupEnv()
@@ -196,30 +195,30 @@ func TestGetStorage(t *testing.T) {
 // 	assert.Error(t, err)
 // }
 
-//What happens with ledger associated with this?
-// func TestRemoveAccount(t *testing.T) {
-// 	mockStub := setupEnv()
+// What happens with ledger associated with this?
+func TestRemoveAccount(t *testing.T) {
+	mockStub := setupEnv()
 
-// 	codePkg := []byte("chaincodecodepackage")
+	codePkg := []byte("chaincodecodepackage")
 
-// 	var convCCID account.Address
-// 	copy(convCCID[:], fakeChaincodeID[:])
-// 	mockStub.MockTransactionStart("transaction1")
-// 	err := mockStub.PutState(string(convCCID.Bytes()), codePkg)
-// 	assert.NoError(t, err)
-// 	mockStub.MockTransactionEnd("transaction1")
+	var convCCID account.Address
+	copy(convCCID[:], fakeChaincodeID[:])
+	mockStub.MockTransactionStart("transaction1")
+	err := mockStub.PutState(string(convCCID.Bytes()), codePkg)
+	assert.NoError(t, err)
+	mockStub.MockTransactionEnd("transaction1")
 
-// 	sm := NewStateManager(mockStub)
+	sm := NewStateManager(mockStub)
 
-// 	mockStub.MockTransactionStart("transaction2")
-// 	err = sm.RemoveAccount(convCCID)
-// 	mockStub.MockTransactionEnd("transaction2")
-// 	assert.NoError(t, err)
+	mockStub.MockTransactionStart("transaction2")
+	err = sm.RemoveAccount(convCCID)
+	mockStub.MockTransactionEnd("transaction2")
+	assert.NoError(t, err)
 
-// 	code, err := mockStub.GetState(string(convCCID.Bytes()))
-// 	assert.NoError(t, err)
-// 	assert.Empty(t, code)
-// }
+	code, err := mockStub.GetState(string(convCCID.Bytes()))
+	assert.NoError(t, err)
+	assert.Empty(t, code)
+}
 
 // func TestRemoveAccountNoAccount(t *testing.T) {
 // 	mockStub := setupEnv()
@@ -263,18 +262,18 @@ func TestSetStorage(t *testing.T) {
 	assert.EqualValues(t, convVal.Bytes(), val)
 }
 
-func TestDecodeBytecode(t *testing.T) {
-	data := []byte("234879")
-	var convAddr account.Address
-	copy(convAddr[:], []byte("data")[:])
+// func TestDecodeBytecode(t *testing.T) {
+// 	data := []byte("234879")
+// 	var convAddr account.Address
+// 	copy(convAddr[:], []byte("data")[:])
 
-	encodedBytecode := encodeBytecode(t, "data", data)
+// 	encodedBytecode := encodeBytecode(t, "data", data)
 
-	decodedBytecode, err := DecodeBytecode(string(convAddr.Bytes()), encodedBytecode)
-	assert.NoError(t, err)
+// 	decodedBytecode, err := DecodeBytecode(string(convAddr.Bytes()), encodedBytecode)
+// 	assert.NoError(t, err)
 
-	assert.Equal(t, data, decodedBytecode)
-}
+// 	assert.Equal(t, data, decodedBytecode)
+// }
 
 func encodeBytecode(t *testing.T, name string, data []byte) []byte {
 
