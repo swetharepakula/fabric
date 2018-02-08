@@ -19,8 +19,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"fmt"
-	"io"
 	"testing"
 
 	"github.com/hyperledger/burrow/account"
@@ -55,12 +53,15 @@ func setupEnv() *shim.MockStub {
 func TestGetAccount(t *testing.T) {
 	mockStub := setupEnv()
 
-	codePkg := []byte("chaincodecodepackage")
+	codePkg := []byte("12345678901")
 
 	var convCCID account.Address
 	copy(convCCID[:], fakeChaincodeID[:])
+
+	encodedCodePkg := encodeBytecode(t, string(convCCID.Bytes()), codePkg)
+
 	mockStub.MockTransactionStart("transaction1")
-	err := mockStub.PutState(string(convCCID.Bytes()), codePkg)
+	err := mockStub.PutState(string(convCCID.Bytes()), encodedCodePkg)
 	assert.NoError(t, err)
 	mockStub.MockTransactionEnd("transaction1")
 
@@ -88,6 +89,30 @@ func TestGetAccountNoAccount(t *testing.T) {
 
 	acct, err := sm.GetAccount(convCCID)
 	assert.NoError(t, err)
+	assert.EqualValues(t, expectedAcct, acct)
+}
+
+func TestGetAccountErr(t *testing.T) {
+	mockStub := setupEnv()
+
+	codePkg := []byte("12345678901")
+
+	var convCCID account.Address
+	copy(convCCID[:], fakeChaincodeID[:])
+
+	encodedCodePkg := encodeBytecode(t, "fake-name", codePkg)
+
+	mockStub.MockTransactionStart("transaction1")
+	err := mockStub.PutState(string(convCCID.Bytes()), encodedCodePkg)
+	assert.NoError(t, err)
+	mockStub.MockTransactionEnd("transaction1")
+
+	sm := NewStateManager(mockStub)
+
+	expectedAcct := account.ConcreteAccount{}.Account()
+
+	acct, err := sm.GetAccount(convCCID)
+	assert.Error(t, err)
 	assert.EqualValues(t, expectedAcct, acct)
 }
 
@@ -119,95 +144,96 @@ func TestGetStorage(t *testing.T) {
 	assert.EqualValues(t, convVal, val)
 }
 
-func TestUpdateAccount(t *testing.T) {
-	mockStub := setupEnv()
+//Not an allowed operation
+// func TestUpdateAccount(t *testing.T) {
+// 	mockStub := setupEnv()
 
-	codePkg := []byte("chaincodecodepackage")
-	codePkg2 := []byte("changedcodepackage")
+// 	codePkg := []byte("chaincodecodepackage")
+// 	codePkg2 := []byte("changedcodepackage")
 
-	var convCCID account.Address
-	copy(convCCID[:], fakeChaincodeID[:])
-	mockStub.MockTransactionStart("transaction1")
-	err := mockStub.PutState(string(convCCID.Bytes()), codePkg)
-	mockStub.MockTransactionEnd("transaction1")
-	assert.NoError(t, err)
+// 	var convCCID account.Address
+// 	copy(convCCID[:], fakeChaincodeID[:])
+// 	mockStub.MockTransactionStart("transaction1")
+// 	err := mockStub.PutState(string(convCCID.Bytes()), codePkg)
+// 	mockStub.MockTransactionEnd("transaction1")
+// 	assert.NoError(t, err)
 
-	sm := NewStateManager(mockStub)
+// 	sm := NewStateManager(mockStub)
 
-	updatedAcct := account.ConcreteAccount{
-		Address: convCCID,
-		Code:    codePkg2,
-	}.Account()
+// 	updatedAcct := account.ConcreteAccount{
+// 		Address: convCCID,
+// 		Code:    codePkg2,
+// 	}.Account()
 
-	mockStub.MockTransactionStart("transaction2")
-	err = sm.UpdateAccount(updatedAcct)
-	mockStub.MockTransactionEnd("transaction2")
-	assert.NoError(t, err)
+// 	mockStub.MockTransactionStart("transaction2")
+// 	err = sm.UpdateAccount(updatedAcct)
+// 	mockStub.MockTransactionEnd("transaction2")
+// 	assert.NoError(t, err)
 
-	updatedCode, err := mockStub.GetState(string(convCCID.Bytes()))
-	assert.NoError(t, err)
-	assert.Equal(t, updatedCode, codePkg2)
-}
+// 	updatedCode, err := mockStub.GetState(string(convCCID.Bytes()))
+// 	assert.NoError(t, err)
+// 	assert.Equal(t, updatedCode, codePkg2)
+// }
 
-func TestUpdateAccountNoPreviousAccount(t *testing.T) {
-	mockStub := setupEnv()
+// func TestUpdateAccountNoPreviousAccount(t *testing.T) {
+// 	mockStub := setupEnv()
 
-	codePkg2 := []byte("changedcodepackage")
+// 	codePkg2 := []byte("changedcodepackage")
 
-	var convCCID account.Address
-	copy(convCCID[:], fakeChaincodeID[:])
+// 	var convCCID account.Address
+// 	copy(convCCID[:], fakeChaincodeID[:])
 
-	sm := NewStateManager(mockStub)
+// 	sm := NewStateManager(mockStub)
 
-	updatedAcct := account.ConcreteAccount{
-		Address: convCCID,
-		Code:    codePkg2,
-	}.Account()
+// 	updatedAcct := account.ConcreteAccount{
+// 		Address: convCCID,
+// 		Code:    codePkg2,
+// 	}.Account()
 
-	mockStub.MockTransactionStart("transaction1")
-	err := sm.UpdateAccount(updatedAcct)
-	mockStub.MockTransactionEnd("transaction1")
-	assert.Error(t, err)
-}
+// 	mockStub.MockTransactionStart("transaction1")
+// 	err := sm.UpdateAccount(updatedAcct)
+// 	mockStub.MockTransactionEnd("transaction1")
+// 	assert.Error(t, err)
+// }
 
 //What happens with ledger associated with this?
-func TestRemoveAccount(t *testing.T) {
-	mockStub := setupEnv()
+// func TestRemoveAccount(t *testing.T) {
+// 	mockStub := setupEnv()
 
-	codePkg := []byte("chaincodecodepackage")
+// 	codePkg := []byte("chaincodecodepackage")
 
-	var convCCID account.Address
-	copy(convCCID[:], fakeChaincodeID[:])
-	mockStub.MockTransactionStart("transaction1")
-	err := mockStub.PutState(string(convCCID.Bytes()), codePkg)
-	assert.NoError(t, err)
-	mockStub.MockTransactionEnd("transaction1")
+// 	var convCCID account.Address
+// 	copy(convCCID[:], fakeChaincodeID[:])
+// 	mockStub.MockTransactionStart("transaction1")
+// 	err := mockStub.PutState(string(convCCID.Bytes()), codePkg)
+// 	assert.NoError(t, err)
+// 	mockStub.MockTransactionEnd("transaction1")
 
-	sm := NewStateManager(mockStub)
+// 	sm := NewStateManager(mockStub)
 
-	mockStub.MockTransactionStart("transaction2")
-	err = sm.RemoveAccount(convCCID)
-	mockStub.MockTransactionEnd("transaction2")
-	assert.NoError(t, err)
+// 	mockStub.MockTransactionStart("transaction2")
+// 	err = sm.RemoveAccount(convCCID)
+// 	mockStub.MockTransactionEnd("transaction2")
+// 	assert.NoError(t, err)
 
-	code, err := mockStub.GetState(string(convCCID.Bytes()))
-	assert.NoError(t, err)
-	assert.Empty(t, code)
-}
+// 	code, err := mockStub.GetState(string(convCCID.Bytes()))
+// 	assert.NoError(t, err)
+// 	assert.Empty(t, code)
+// }
 
-func TestRemoveAccountNoAccount(t *testing.T) {
-	mockStub := setupEnv()
+// func TestRemoveAccountNoAccount(t *testing.T) {
+// 	mockStub := setupEnv()
 
-	var convCCID account.Address
-	copy(convCCID[:], fakeChaincodeID[:])
+// 	var convCCID account.Address
+// 	copy(convCCID[:], fakeChaincodeID[:])
 
-	sm := NewStateManager(mockStub)
+// 	sm := NewStateManager(mockStub)
 
-	mockStub.MockTransactionStart("transaction1")
-	err := sm.RemoveAccount(convCCID)
-	mockStub.MockTransactionEnd("transaction1")
-	assert.Error(t, err)
-}
+// 	mockStub.MockTransactionStart("transaction1")
+// 	err := sm.RemoveAccount(convCCID)
+// 	mockStub.MockTransactionEnd("transaction1")
+// 	assert.Error(t, err)
+// }
 
 func TestSetStorage(t *testing.T) {
 	mockStub := setupEnv()
@@ -238,36 +264,29 @@ func TestSetStorage(t *testing.T) {
 }
 
 func TestDecodeBytecode(t *testing.T) {
+	data := []byte("234879")
+	var convAddr account.Address
+	copy(convAddr[:], []byte("data")[:])
+
+	encodedBytecode := encodeBytecode(t, "data", data)
+
+	decodedBytecode, err := DecodeBytecode(string(convAddr.Bytes()), encodedBytecode)
+	assert.NoError(t, err)
+
+	assert.Equal(t, data, decodedBytecode)
+}
+
+func encodeBytecode(t *testing.T, name string, data []byte) []byte {
 
 	buf := bytes.NewBuffer(nil)
 	gw := gzip.NewWriter(buf)
 	tw := tar.NewWriter(gw)
 
-	defer tw.Close()
-	defer gw.Close()
-
-	data := []byte("do i need to have more stuff in here?")
-	err := util.WriteBytesToPackage("data", data, tw)
-
+	err := util.WriteBytesToPackage(name, data, tw)
 	assert.NoError(t, err)
 
-	fmt.Println("BUFFER BYTES: ", buf.Bytes())
+	tw.Close()
+	gw.Close()
 
-	br := bytes.NewReader(buf.Bytes())
-	gr, err := gzip.NewReader(br)
-	assert.NoError(t, err)
-	tr := tar.NewReader(gr)
-
-	hdr, err := tr.Next()
-	assert.NoError(t, err)
-
-	assert.NotNil(t, hdr)
-
-	newBuffer := bytes.NewBuffer(nil)
-	io.Copy(newBuffer, tr)
-
-	decodedBytecode := DecodeBytecode("data", buf.Bytes())
-
-	assert.Equal(t, data, decodedBytecode)
-
+	return buf.Bytes()
 }
