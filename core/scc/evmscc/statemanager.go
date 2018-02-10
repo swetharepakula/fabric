@@ -23,7 +23,7 @@ func NewStateManager(stub shim.ChaincodeStubInterface) StateManager {
 }
 
 func (s *stateManager) GetAccount(address account.Address) (account.Account, error) {
-	convAddr := string(address.Bytes())
+	convAddr := address.String()
 	code, err := s.stub.GetState(convAddr)
 
 	if err != nil {
