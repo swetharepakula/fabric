@@ -17,7 +17,6 @@ limitations under the License.
 package evmscc
 
 import (
-	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
@@ -66,7 +65,6 @@ func (evmcc *EvmChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response 
 	if err != nil {
 		return shim.Error(fmt.Sprintf("failed to get callee address: %s", err.Error()))
 	}
-	logger.Debugf("Callee address: %s\n", calleeAddr.String())
 
 	// get caller account from creator public key
 	callerAddr, err := getCallerAddress(stub)
@@ -86,10 +84,28 @@ func (evmcc *EvmChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response 
 	vm := evm.NewVM(state, evm.DefaultDynamicMemoryProvider, newParams(), callerAddr, nil, evmLogger)
 
 	if calleeAddr == account.ZeroAddress {
-		logger.Debugf("Create contract")
+		logger.Debugf("Deploy contract")
 
-		calleeAcct := account.ConcreteAccount{Address: account.ZeroAddress}.MutableAccount()
-		rtCode, err := vm.Call(callerAcct, calleeAcct, input, input, 0, &gas)
+		seqKey := binary.RightPadWord256([]byte("sequence"))
+		s, err := state.GetStorage(callerAddr, seqKey)
+		if err != nil {
+			return shim.Error(fmt.Sprintf("failed to get caller sequence"))
+		}
+
+		var seq uint64
+		if s == binary.Zero256 {
+			logger.Debugf("This is the fisrt contract deployed by %x", callerAddr.Bytes())
+			seq = 0
+		} else {
+			seq = binary.Uint64FromWord256(s)
+			logger.Debugf("This is %d contract deployed by %x", seq+1, callerAddr.Bytes())
+			state.SetStorage(callerAddr, seqKey, binary.Uint64ToWord256(seq+1))
+		}
+
+		contractAddr := account.NewContractAddress(callerAddr, seq)
+		contractAcct := account.ConcreteAccount{Address: contractAddr}.MutableAccount()
+
+		rtCode, err := vm.Call(callerAcct, contractAcct, input, nil, 0, &gas)
 		if err != nil {
 			return shim.Error(fmt.Sprintf("failed to deploy code: %s", err.Error()))
 		}
@@ -97,28 +113,22 @@ func (evmcc *EvmChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response 
 			return shim.Error(fmt.Sprintf("nil bytecode"))
 		}
 
-		// TODO derive contract account with canonical chaincode name so that user
-		// could invoke without knowing contract address
-		contractAddr := account.NewContractAddress(callerAddr, 1)
-
-		// EVM doesn't store runtime code into account. It's the job for execution framework
-		if err = stub.PutState(contractAddr.String(), rtCode); err != nil {
+		contractAcct.SetCode(rtCode)
+		if err = state.UpdateAccount(contractAcct); err != nil {
 			return shim.Error(fmt.Sprintf("failed to update contract account: %s", err.Error()))
 		}
-
-		logger.Infof("Created new contract at %x\n", contractAddr.Bytes())
 
 		// return encoded hex bytes for human-readability
 		return shim.Success([]byte(hex.EncodeToString(contractAddr.Bytes())))
 	} else {
-		logger.Debugf("Call contract")
+		logger.Debugf("Invoke contract at %x", calleeAddr.Bytes())
 
 		calleeAcct, err := state.GetAccount(calleeAddr)
 		if err != nil {
 			return shim.Error(fmt.Sprintf("failed to retrieve contract code: %s", err.Error()))
 		}
 
-		output, err := vm.Call(callerAcct, account.AsMutableAccount(calleeAcct), calleeAcct.Code(), input, 0, &gas)
+		output, err := vm.Call(callerAcct, account.AsMutableAccount(calleeAcct), calleeAcct.Code().Bytes(), input, 0, &gas)
 		if err != nil {
 			return shim.Error(fmt.Sprintf("failed to execute contract: %s", err.Error()))
 		}
@@ -188,14 +198,9 @@ func identityToAddr(id []byte) (account.Address, error) {
 		return account.ZeroAddress, fmt.Errorf("failed to parse certificate: %s", err)
 	}
 
-	var pubkeyBytes []byte
-	switch cert.PublicKey.(type) {
-	case *ecdsa.PublicKey:
-		if pubkeyBytes, err = x509.MarshalPKIXPublicKey(cert.PublicKey.(*ecdsa.PublicKey)); err != nil {
-			return account.ZeroAddress, fmt.Errorf("error marshalling public key: %s", err)
-		}
-	default:
-		return account.ZeroAddress, fmt.Errorf("public key type is not yet supported")
+	pubkeyBytes, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
+	if err != nil {
+		return account.ZeroAddress, fmt.Errorf("unable to marshal public key: %s", err)
 	}
 
 	return account.AddressFromWord256(sha3.Sum256(pubkeyBytes)), nil
