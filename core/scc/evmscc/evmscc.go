@@ -47,10 +47,14 @@ func (evmcc *EvmChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
 }
 
 func (evmcc *EvmChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
-	// We always expect 2 args: 'callee address, input data'
+	// We always expect 2 args: 'callee address, input data' or ' getCode ,  contract address'
 	args := stub.GetArgs()
 	if len(args) != 2 {
 		return shim.Error(fmt.Sprintf("expects 2 args, got %d", len(args)))
+	}
+
+	if string(args[0]) == "getCode" {
+		return evmcc.getCode(stub, args[1])
 	}
 
 	c, err := hex.DecodeString(string(args[0]))
@@ -78,7 +82,7 @@ func (evmcc *EvmChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response 
 	}
 
 	var gas uint64 = 10000
-	state := &stateManager{stub}
+	state := NewStateManager(stub)
 	vm := evm.NewVM(state, evm.DefaultDynamicMemoryProvider, newParams(), callerAddr, nil, evmLogger)
 
 	if calleeAddr == account.ZeroAddress {
@@ -124,6 +128,25 @@ func (evmcc *EvmChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response 
 
 	logger.Fatalf("Not reacheable")
 	return shim.Error("internal server error")
+}
+
+func (evmscc *EvmChaincode) getCode(stub shim.ChaincodeStubInterface, address []byte) pb.Response {
+	c, err := hex.DecodeString(string(address))
+	if err != nil {
+		return shim.Error(fmt.Sprintf("failed to decode callee address from %s: %s", string(address), err.Error()))
+	}
+
+	calleeAddr, err := account.AddressFromBytes(c)
+	if err != nil {
+		return shim.Error(fmt.Sprintf("failed to get callee address: %s", err.Error()))
+	}
+
+	code, err := stub.GetState(calleeAddr.String())
+	if err != nil {
+		return shim.Error(fmt.Sprintf("failed to get contract account: %s", err.Error()))
+	}
+
+	return shim.Success([]byte(hex.EncodeToString(code)))
 }
 
 func newParams() evm.Params {
