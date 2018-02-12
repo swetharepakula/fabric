@@ -41,9 +41,7 @@ func (s *stateManager) GetAccount(address account.Address) (account.Account, err
 }
 
 func (s *stateManager) GetStorage(address account.Address, key binary.Word256) (binary.Word256, error) {
-
-	compKey := string(address.Bytes()) + string(key.Bytes())
-
+	compKey := address.String() + key.String()
 	val, err := s.stub.GetState(compKey)
 	if err != nil {
 		return binary.Word256{}, err
@@ -56,19 +54,19 @@ func (s *stateManager) GetStorage(address account.Address, key binary.Word256) (
 }
 
 func (s *stateManager) UpdateAccount(updatedAccount account.Account) error {
-	convAddr := string(updatedAccount.Address().Bytes())
+	convAddr := updatedAccount.Address().String()
 
 	return s.stub.PutState(convAddr, updatedAccount.Code().Bytes())
 }
 
 func (s *stateManager) RemoveAccount(address account.Address) error {
-	convAddr := string(address.Bytes())
+	convAddr := address.String()
 
 	return s.stub.DelState(convAddr)
 }
 
 func (s *stateManager) SetStorage(address account.Address, key, value binary.Word256) error {
-	compKey := string(address.Bytes()) + string(key.Bytes())
+	compKey := address.String() + string(key.Bytes())
 
 	return s.stub.PutState(compKey, value.Bytes())
 }
