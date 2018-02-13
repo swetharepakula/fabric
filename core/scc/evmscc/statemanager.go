@@ -66,7 +66,7 @@ func (s *stateManager) RemoveAccount(address account.Address) error {
 }
 
 func (s *stateManager) SetStorage(address account.Address, key, value binary.Word256) error {
-	compKey := address.String() + string(key.Bytes())
+	compKey := address.String() + key.String()
 
 	return s.stub.PutState(compKey, value.Bytes())
 }
