@@ -135,6 +135,36 @@ func TestEVM(t *testing.T) {
 	assert.Equal(t, "000000000000000000000000000000000000000000000000000000000000002a", hex.EncodeToString(res.Payload))
 }
 
+// This tests that sequence number should be incremented
+// every time a new contract is deployed by this creator.
+func TestDeployContractTwice(t *testing.T) {
+	evmscc := new(EvmChaincode)
+	stub := shim.NewMockStub("evmscc", evmscc)
+	creator, err := marshalCreator("TestOrg", []byte(user0Cert))
+	require.NoError(t, err)
+	require.NotNil(t, creator)
+	stub.Creator = creator
+
+	deployCode := []byte(DEPLOY_BYTECODE)
+
+	// Install
+	res := stub.MockInvoke("installtxid", [][]byte{[]byte(account.ZeroAddress.String()), deployCode})
+	assert.Equal(t, int32(shim.OK), res.Status, "expect OK, got: %s", res.Message)
+
+	contract0Addr, err := account.AddressFromHexString(string(res.Payload))
+	assert.NoError(t, err)
+
+	// Install again
+	res = stub.MockInvoke("installtxid", [][]byte{[]byte(account.ZeroAddress.String()), deployCode})
+	assert.Equal(t, int32(shim.OK), res.Status, "expect OK, got: %s", res.Message)
+
+	contract1Addr, err := account.AddressFromHexString(string(res.Payload))
+	assert.NoError(t, err)
+
+	// Compare two contract addresses
+	assert.NotEqual(t, contract0Addr, contract1Addr, "expect second contract address to be different from the first one")
+}
+
 /* Voting App from https://solidity.readthedocs.io/en/develop/solidity-by-example.html#voting
 pragma solidity ^0.4.16;
 
