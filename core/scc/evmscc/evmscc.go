@@ -94,13 +94,14 @@ func (evmcc *EvmChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response 
 
 		var seq uint64
 		if s == binary.Zero256 {
-			logger.Debugf("This is the fisrt contract deployed by %x", callerAddr.Bytes())
 			seq = 0
 		} else {
 			seq = binary.Uint64FromWord256(s)
-			logger.Debugf("This is %d contract deployed by %x", seq+1, callerAddr.Bytes())
-			state.SetStorage(callerAddr, seqKey, binary.Uint64ToWord256(seq+1))
 		}
+
+		// Update contract seq number
+		logger.Debugf("Contract sequence number = %d", seq)
+		state.SetStorage(callerAddr, seqKey, binary.Uint64ToWord256(seq+1))
 
 		contractAddr := account.NewContractAddress(callerAddr, seq)
 		contractAcct := account.ConcreteAccount{Address: contractAddr}.MutableAccount()
