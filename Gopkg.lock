@@ -44,6 +44,12 @@
   revision = "4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/btcsuite/btcd"
+  packages = ["btcec"]
+  revision = "2be2f12b358dc57d70b8f501b00be450192efbc3"
+
+[[projects]]
   name = "github.com/cactus/go-statsd-client"
   packages = ["statsd"]
   revision = "138b925ccdf617776955904ba7759fce64406cec"
@@ -60,6 +66,12 @@
   packages = ["pkg/testutil/assert"]
   revision = "092cba3727bb9b4a2f0e922cd6c0f93ea270e363"
   version = "v1.13.1"
+
+[[projects]]
+  name = "github.com/eapache/channels"
+  packages = ["."]
+  revision = "47238d5aae8c0fefd518ef2bee46290909cf8263"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/eapache/go-resiliency"
@@ -111,6 +123,43 @@
   version = "docker-1.9/go-1.4"
 
 [[projects]]
+  name = "github.com/go-kit/kit"
+  packages = [
+    "log",
+    "log/level",
+    "log/term"
+  ]
+  revision = "4dc7be5d2d12881735283bcab7352178e190fc71"
+  version = "v0.6.0"
+
+[[projects]]
+  name = "github.com/go-logfmt/logfmt"
+  packages = ["."]
+  revision = "390ab7935ee28ec6b286364bba9b4dd6410cb3d5"
+  version = "v0.3.0"
+
+[[projects]]
+  name = "github.com/go-playground/locales"
+  packages = [
+    ".",
+    "currency"
+  ]
+  revision = "f63010822830b6fe52288ee52d5a1151088ce039"
+  version = "v0.12.1"
+
+[[projects]]
+  name = "github.com/go-playground/universal-translator"
+  packages = ["."]
+  revision = "b32fa301c9fe55953584134cb6853a13c87ec0a1"
+  version = "v0.16.0"
+
+[[projects]]
+  name = "github.com/go-stack/stack"
+  packages = ["."]
+  revision = "259ab82a6cad3992b4e21ff5cac294ccb06474bc"
+  version = "v1.7.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/groupcache"
   packages = ["lru"]
@@ -160,6 +209,30 @@
   revision = "4fe82ae3040f80a03d04d2cccb5606a626b8e1ee"
 
 [[projects]]
+  branch = "develop"
+  name = "github.com/hyperledger/burrow"
+  packages = [
+    "account",
+    "binary",
+    "event",
+    "execution/evm",
+    "execution/evm/abi",
+    "execution/evm/asm",
+    "execution/evm/asm/bc",
+    "execution/evm/events",
+    "execution/evm/sha3",
+    "logging",
+    "logging/errors",
+    "logging/loggers",
+    "logging/structure",
+    "logging/types",
+    "permission",
+    "permission/types",
+    "server"
+  ]
+  revision = "db3a02cf1591af9f3b072758ac1aef7c0cabdc7a"
+
+[[projects]]
   branch = "master"
   name = "github.com/hyperledger/fabric-amcl"
   packages = [
@@ -173,6 +246,12 @@
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
   version = "v1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/kr/logfmt"
+  packages = ["."]
+  revision = "b84e30acd515aadc4b783ad4ff83aff3299bdfe0"
 
 [[projects]]
   branch = "master"
@@ -397,6 +476,54 @@
   revision = "169b1b37be738edb2813dab48c97a549bcf99bb5"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/tendermint/ed25519"
+  packages = [
+    ".",
+    "edwards25519",
+    "extra25519"
+  ]
+  revision = "d8387025d2b9d158cf4efb07e7ebf814bcce2057"
+
+[[projects]]
+  name = "github.com/tendermint/go-crypto"
+  packages = ["."]
+  revision = "dd20358a264c772b4a83e477b0cfce4c88a7001d"
+  version = "v0.4.1"
+
+[[projects]]
+  name = "github.com/tendermint/go-wire"
+  packages = [
+    ".",
+    "data"
+  ]
+  revision = "fa721242b042ecd4c6ed1a934ee740db4f74e45c"
+  version = "v0.7.3"
+
+[[projects]]
+  name = "github.com/tendermint/tmlibs"
+  packages = [
+    "common",
+    "log",
+    "pubsub",
+    "pubsub/query"
+  ]
+  revision = "91b4b534ad78e442192c8175db92a06a51064064"
+  version = "v0.6.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/tmthrgd/asm"
+  packages = ["."]
+  revision = "4be3ab5ca701563b932e93c3f3b58aad8b5ed230"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/tmthrgd/go-hex"
+  packages = ["."]
+  revision = "13ed8ac0738b1390630f86f6bf0943730c6d8037"
+
+[[projects]]
   name = "github.com/uber-go/tally"
   packages = [
     ".",
@@ -409,7 +536,17 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["sha3"]
+  packages = [
+    "ed25519",
+    "ed25519/internal/edwards25519",
+    "nacl/secretbox",
+    "openpgp/armor",
+    "openpgp/errors",
+    "poly1305",
+    "ripemd160",
+    "salsa20/salsa",
+    "sha3"
+  ]
   revision = "21652f85b0fdddb6c2b6b77a5beca5c5a908174a"
 
 [[projects]]
@@ -523,6 +660,12 @@
   version = "v1.0.22"
 
 [[projects]]
+  name = "gopkg.in/go-playground/validator.v9"
+  packages = ["."]
+  revision = "8ce234ff024d85b3848e485decba806385d6e276"
+  version = "v9.13.0"
+
+[[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   revision = "a3f3340b5840cee44f372bddb5880fcbc419b46a"
@@ -530,6 +673,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b0b0b643aaf74f16a90bdcb1c098b91de2efac530ce821431adff4710db5da2c"
+  inputs-digest = "0f0bb89858e3d760c564909f529683e4a5fc5d3b9f3eb154e50ce8bc22bf947e"
   solver-name = "gps-cdcl"
   solver-version = 1
