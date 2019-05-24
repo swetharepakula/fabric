@@ -555,6 +555,11 @@ func (c *commImpl) GossipStream(stream proto.Gossip_GossipStreamServer) error {
 	c.logger.Debug("Servicing", extractRemoteAddress(stream))
 
 	conn := c.connStore.onConnected(stream, connInfo, c.metrics)
+	if conn == nil {
+		// Check to see if connection is nil. If nil we can allow
+		// previous GossipStream to handle the connection
+		return nil
+	}
 
 	h := func(m *protoext.SignedGossipMessage) {
 		c.msgPublisher.DeMultiplex(&ReceivedMessageImpl{
@@ -570,7 +575,6 @@ func (c *commImpl) GossipStream(stream proto.Gossip_GossipStreamServer) error {
 	defer func() {
 		c.logger.Debug("Client", extractRemoteAddress(stream), " disconnected")
 		c.connStore.closeConnByPKIid(connInfo.ID)
-		conn.close()
 	}()
 
 	return conn.serviceConnection()

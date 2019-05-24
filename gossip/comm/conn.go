@@ -134,6 +134,10 @@ func (cs *connectionStore) connNum() int {
 
 func (cs *connectionStore) shutdown() {
 	cs.Lock()
+	if cs.isClosing {
+		cs.Unlock()
+		return
+	}
 	cs.isClosing = true
 	pkiIds2conn := cs.pki2Conn
 
@@ -143,15 +147,9 @@ func (cs *connectionStore) shutdown() {
 	}
 	cs.Unlock()
 
-	wg := sync.WaitGroup{}
 	for _, conn := range connections2Close {
-		wg.Add(1)
-		go func(conn *connection) {
-			cs.closeConnByPKIid(conn.pkiID)
-			wg.Done()
-		}(conn)
+		cs.closeConnByPKIid(conn.pkiID)
 	}
-	wg.Wait()
 }
 
 // onConnected closes any connection to the remote peer and creates a new connection object to it in order to have only
@@ -162,6 +160,10 @@ func (cs *connectionStore) onConnected(serverStream proto.Gossip_GossipStreamSer
 	defer cs.Unlock()
 
 	if c, exists := cs.pki2Conn[string(connInfo.ID)]; exists {
+		if c.serverStream != nil {
+			// Existing connection is already for server stream so no need to close and recreate
+			return nil
+		}
 		c.close()
 	}
 
@@ -224,18 +226,12 @@ type connection struct {
 }
 
 func (conn *connection) close() {
-	if conn.toDie() {
-		return
-	}
-
 	amIFirst := atomic.CompareAndSwapInt32(&conn.stopFlag, int32(0), int32(1))
 	if !amIFirst {
 		return
 	}
-
 	close(conn.stopChan)
 
-	conn.drainOutputBuffer()
 	conn.Lock()
 	defer conn.Unlock()
 
@@ -272,7 +268,10 @@ func (conn *connection) send(msg *protoext.SignedGossipMessage, onErr func(error
 		// room in channel, successfully sent message, nothing to do
 	default: // did not send
 		if shouldBlock {
-			conn.outBuff <- m // try again, and wait to send
+			select {
+			case conn.outBuff <- m: // try again, and wait to send
+			case <-conn.stopChan: //stop blocking if connnection is closing
+			}
 		} else {
 			conn.metrics.BufferOverflow.Add(1)
 			conn.logger.Debugf("Buffer to %s overflowed, dropping message %s", conn.info.Endpoint, msg)
@@ -289,8 +288,6 @@ func (conn *connection) serviceConnection() error {
 	// the method and makes the Recv() call to fail in the
 	// readFromStream() method
 	go conn.readFromStream(errChan, msgChan)
-
-	conn.stopWG.Add(1) // wait for write to finish before closing it
 	go conn.writeToStream()
 
 	for !conn.toDie() {
@@ -308,6 +305,7 @@ func (conn *connection) serviceConnection() error {
 }
 
 func (conn *connection) writeToStream() {
+	conn.stopWG.Add(1) // wait for write to finish before calling conn.close()
 	defer conn.stopWG.Done()
 	for !conn.toDie() {
 		stream := conn.getStream()
@@ -325,18 +323,6 @@ func (conn *connection) writeToStream() {
 			conn.metrics.SentMessages.Add(1)
 		case <-conn.stopChan:
 			conn.logger.Debug("Closing writing to stream")
-			return
-		}
-	}
-}
-
-func (conn *connection) drainOutputBuffer() {
-	// Read from the buffer until it is empty.
-	// There may be multiple concurrent readers.
-	for {
-		select {
-		case <-conn.outBuff:
-		default:
 			return
 		}
 	}
